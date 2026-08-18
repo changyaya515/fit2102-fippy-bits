@@ -33,22 +33,48 @@ const Viewport = {
     CANVAS_HEIGHT: 400,
 } as const;
 
-const Target = {
+const TargetSize = {
     WIDTH: 64,
     HEIGHT: 36,
 } as const;
 
+type Target = Readonly<{
+    id: string;
+    value: number;   
+    y: number;     
+}>;
+
 const Constants = {
     DIGIT_COUNT: 8,
     TICK_RATE_MS: 500, // Might need to change this!
+    INITIAL_SEED: 1234,
 } as const;
+
+type Bit = 0 | 1;
+
 
 // State processing
 type State = Readonly<{
     gameEnd: boolean;
+    bits: ReadonlyArray<Bit>;
+    targets: ReadonlyArray<Target>;
+    exit: ReadonlyArray<Target>;
+    score: number;
+    time: number;
+    seed: number;
+    nextId: number;
+    nextSpawnTick: number;
 }>;
 
+
 const initialState: State = {
+    // bits: ,
+    targets: [],
+    exit: [],
+    score: 0,
+    time: 0,
+    seed: Constants.INITIAL_SEED,
+    nextId: 0,
     gameEnd: false,
 };
 
