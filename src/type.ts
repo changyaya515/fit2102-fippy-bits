@@ -37,3 +37,23 @@ const initialState: State = {
     nextId: 0,
     gameEnd: false,
 };
+
+
+export interface Action {
+    apply(s: State): State;
+}
+
+class ToggleBitAt implements Action {
+  constructor(public readonly index: number) {}
+
+  apply(s: State): State {
+    return s.gameEnd
+      ? s
+      : {
+          ...s,
+          bits: s.bits.map((bit, idx) =>
+            idx === this.index ? ((1 - bit) as Bit) : bit
+          ),
+        };
+  }
+}
