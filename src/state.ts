@@ -21,6 +21,18 @@ export abstract class RNG {
     public static scale = (hash: number) => (2 * hash) / (RNG.m - 1) - 1;
 }
 
+/*
+Tick logic
+*/
+export class Tick implements Action {
+    constructor(public readonly elapsed: number) {}
+
+    apply = (s: State): State => ({
+        ...s,
+        tickCount: this.elapsed,
+    });
+}
+
 
 export const initialState: State = {
     gameEnd: false,
