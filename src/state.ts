@@ -25,12 +25,11 @@ export abstract class RNG {
 Tick logic
 */
 export class Tick implements Action {
-    constructor(public readonly elapsed: number) {}
-
-    apply = (s: State): State => ({
-        ...s,
-        tickCount: this.elapsed,
-    });
+  constructor(public readonly step: number) {}
+  apply = (s: State): State => ({
+    ...s,
+    tickCount: s.tickCount + 1,
+  });
 }
 
 
@@ -43,6 +42,7 @@ export const initialState: State = {
     time: 0,
     seed: Constants.INITIAL_SEED,
     nextId: 0,
+    tickCount: 0
 };
 
 const flip = (b: Bit): Bit => (b === 0 ? 1 : 0);

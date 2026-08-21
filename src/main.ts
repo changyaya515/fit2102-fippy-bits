@@ -21,17 +21,14 @@ import {
     fromEvent,
     interval,
     map,
+    merge,
     scan,
     switchMap,
     take,
 } from "rxjs";
 
-import { Action, Constants, State, Viewport } from "./type";
-import { initialState, reduceState, ToggleBitAt } from "./state";
-
-
-
-
+import { Action, Constants, State, Viewport , Target } from "./type";
+import { initialState, reduceState, ToggleBitAt, Tick } from "./state";
 
 
 
@@ -70,6 +67,22 @@ const hide = (elem: SVGElement): void => {
     elem.setAttribute("visibility", "hidden");
 };
 
+
+const key$ = fromEvent<KeyboardEvent>(document, "keydown");
+
+const fromKey = (keyCode: string, action: Action): Observable<Action> =>
+    key$.pipe(
+        filter(({ code }) => code === keyCode),
+        map(() => action),
+    );
+    
+const flipByKey$ = merge(
+    ...Array.from({ length: Constants.DIGIT_COUNT }, (_, i) =>
+        fromKey(`Digit${i + 1}`, new ToggleBitAt(i)),
+    ),
+);
+
+
 /**
  * Creates an SVG element with the given properties.
  *
@@ -91,74 +104,63 @@ const createSvgElement = (
     return elem;
 };
 
-const render = (): ((s: State) => void) => {
-    const svg = document.querySelector("#svgCanvas") as SVGSVGElement;
+const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
+    const svg = document.querySelector("#svgCanvas") as SVGSVGElement | null;
+    if (!svg) return () => {};
 
     svg.setAttribute(
         "viewBox",
         `0 0 ${Viewport.CANVAS_WIDTH} ${Viewport.CANVAS_HEIGHT}`,
     );
-    /**
-     * Renders the current state to the canvas.
-     *
-     * In MVC terms, this updates the View using the Model.
-     *
-     * @param s Current state
-     */
-    return (s: State) => {
-        // Draw a static falling target as a demonstration
-        const target = createSvgElement(svg.namespaceURI, "rect", {
-            x: `${Viewport.CANVAS_WIDTH / 2 - Target.WIDTH / 2}`,
-            y: "40",
-            width: `${Target.WIDTH}`,
-            height: `${Target.HEIGHT}`,
-            rx: "6",
-            fill: "white",
-            stroke: "black",
-            "stroke-width": "2",
-        });
-        const targetText = createSvgElement(svg.namespaceURI, "text", {
-            x: `${Viewport.CANVAS_WIDTH / 2}`,
-            y: `${40 + Target.HEIGHT / 2 + 8}`,
-            "text-anchor": "middle",
-            "font-family": "monospace",
-            fill: "black",
-        });
-        targetText.textContent = "13";
-        svg.appendChild(target);
-        svg.appendChild(targetText);
 
-        // Draw the row of digit toggles as a demonstration
-        const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
-        Array.from({ length: Constants.DIGIT_COUNT }).forEach((_, i) => {
-            const bit = createSvgElement(svg.namespaceURI, "rect", {
-                x: `${i * digitWidth + 4}`,
-                y: `${Viewport.CANVAS_HEIGHT - 50}`,
-                width: `${digitWidth - 8}`,
-                height: "40",
-                fill: "#ef9a9a",
-                stroke: "black",
-                "stroke-width": "2",
-            });
-            const bitText = createSvgElement(svg.namespaceURI, "text", {
-                x: `${i * digitWidth + digitWidth / 2}`,
-                y: `${Viewport.CANVAS_HEIGHT - 22}`,
-                "text-anchor": "middle",
-                "font-family": "monospace",
-                fill: "black",
-            });
-            bitText.textContent = "0";
-            svg.appendChild(bit);
-            svg.appendChild(bitText);
+    const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
+
+    const bitViews = Array.from({ length: Constants.DIGIT_COUNT }, (_, i) => {
+        const rect = createSvgElement(svg.namespaceURI, "rect", {
+            x: `${i * digitWidth + 4}`,
+            y: `${Viewport.CANVAS_HEIGHT - 50}`,
+            width: `${digitWidth - 8}`,
+            height: "40",
+            rx: "4",
         });
+        rect.classList.add("bit");
+
+        const bitText = createSvgElement(svg.namespaceURI, "text", {
+            x: `${i * digitWidth + digitWidth / 2}`,
+            y: `${Viewport.CANVAS_HEIGHT - 22}`,
+        });
+        bitText.classList.add("bit-label");
+        bitText.textContent = "0";
+
+        svg.appendChild(rect);
+        svg.appendChild(bitText);
+
+        return { rect, bitText };
+    });
+
+    return (s: State): void => {
+        s.bits.forEach((val, i) => {
+            const view = bitViews[i];
+            view.bitText.textContent = String(val);
+            view.rect.classList.toggle("on", val === 1);
+        });
+
+        if (s.gameEnd) {
+            onFinish();
+        }
     };
 };
 
+
 export const state$ = (): Observable<State> => {
     /** Determines the rate of time steps */
-    const tick$ = interval(Constants.TICK_RATE_MS);
+  const tick$ = interval(Constants.TICK_RATE_MS);
 
-    return tick$.pipe(scan((s: State) => ({ gameEnd: false }), initialState));
+  return tick$.pipe(
+    scan((s: State, elapsed) => {
+      return new Tick(elapsed).apply(s);
+    }, initialState),
+  );
 };
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.
@@ -169,3 +171,6 @@ if (typeof window !== "undefined") {
 
     click$.pipe(switchMap(() => state$())).subscribe(render());
 }
+
+
+

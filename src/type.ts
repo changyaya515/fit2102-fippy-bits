@@ -6,6 +6,16 @@ export const Constants = {
     INITIAL_SEED: 1234,
 } as const;
 
+export const Viewport = {
+    CANVAS_WIDTH: 600,
+    CANVAS_HEIGHT: 400,
+} as const;
+
+export const Target = {
+    WIDTH: 64,
+    HEIGHT: 36,
+} as const;
+
 export type FallingTarget = Readonly<{
   id: string
   value: number
@@ -24,9 +34,8 @@ export type State = Readonly<{
     time: number;
     seed: number;
     nextId: number;
+    tickCount: number
 }>;
-
-
 
 export interface Action {
     apply(s: State): State;
