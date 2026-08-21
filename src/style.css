@@ -94,6 +94,22 @@ svg rect {
     float: right;
 }
 
+.bit {
+    fill: #ef9a9a;
+    stroke: black;
+    stroke-width: 2;
+}
+
+.bit.on {
+    fill: #81c784;
+}
+   
+.bit-label {
+    fill: black;
+    font-family: monospace;
+    font-size: 18px;
+}
+
 #gameOver {
     font-size: 1.5em;
     font-weight: bolder;
