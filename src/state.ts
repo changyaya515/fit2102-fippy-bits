@@ -1,28 +1,38 @@
-import { Action, Bit, Constants, State } from "./types";
+import { Action, Bit, Constants, State, FallingTarget } from "./types";
 
+export const createTarget = (
+    idNum: number,
+    createTime: number,
+    value: number,
+    x: number,
+): FallingTarget => ({
+    id: `target${idNum}`,
+    createTime,
+    value,
+    x,
+    y: 0,
+});
 
 /*
 Tick logic
 */
 export class Tick implements Action {
-  constructor(public readonly step: number) {}
-  apply = (s: State): State => ({
-    ...s,
-    tickCount: s.tickCount + 1,
-  });
+    constructor(public readonly step: number) {}
+    apply = (s: State): State => ({
+        ...s,
+        tickCount: s.tickCount + 1,
+    });
 }
-
 
 export const initialState: State = {
     gameEnd: false,
     bits: Array.from({ length: Constants.DIGIT_COUNT }, (): Bit => 0),
-    targets: [],
+    targets: [createTarget(0, 0, 13, 100)],
     exit: [],
     score: 0,
-    time: 0,
     seed: Constants.INITIAL_SEED,
     nextId: 0,
-    tickCount: 0
+    tickCount: 0,
 };
 
 const flip = (b: Bit): Bit => (b === 0 ? 1 : 0);

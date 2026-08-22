@@ -25,7 +25,7 @@ export type FallingTarget = Readonly<{
   value: number      
   x: number          
   y: number          
-}>
+}>;
 
 // State processing
 export type State = Readonly<{
@@ -34,13 +34,13 @@ export type State = Readonly<{
     targets: ReadonlyArray<FallingTarget>;
     exit: ReadonlyArray<FallingTarget>;
     score: number;
-    time: number;
-    seed: number;
-    nextId: number;
-    tickCount: number
+    tickCount: number    
+    seed: number
+    nextId: number
 }>;
+
 
 export interface Action {
     apply(s: State): State;
-}
+};
 
