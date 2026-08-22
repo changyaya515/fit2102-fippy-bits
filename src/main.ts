@@ -27,10 +27,8 @@ import {
     take,
 } from "rxjs";
 
-import { Action, Constants, State, Viewport , Target } from "./types";
+import { Action, Constants, State, Viewport, Target } from "./types";
 import { initialState, reduceState, ToggleBitAt, Tick } from "./state";
-
-
 
 /**
  * Updates the state by proceeding with one time step.
@@ -67,7 +65,6 @@ const hide = (elem: SVGElement): void => {
     elem.setAttribute("visibility", "hidden");
 };
 
-
 const key$ = fromEvent<KeyboardEvent>(document, "keydown");
 
 const fromKey = (keyCode: string, action: Action): Observable<Action> =>
@@ -75,14 +72,12 @@ const fromKey = (keyCode: string, action: Action): Observable<Action> =>
         filter(({ code }) => code === keyCode),
         map(() => action),
     );
-    
+
 const flipByKey$ = merge(
     ...Array.from({ length: Constants.DIGIT_COUNT }, (_, i) =>
         fromKey(`Digit${i + 1}`, new ToggleBitAt(i)),
     ),
 );
-
-
 
 /**
  * Creates an SVG element with the given properties.
@@ -114,6 +109,19 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
         `0 0 ${Viewport.CANVAS_WIDTH} ${Viewport.CANVAS_HEIGHT}`,
     );
 
+    /*
+    Debug message
+    */
+    const hud = createSvgElement(svg.namespaceURI, "text", {
+        x: "10",
+        y: "24",
+        "text-anchor": "start",
+        "font-family": "monospace",
+        fill: "white",
+    });
+    hud.classList.add("hud");
+    svg.appendChild(hud);
+
     const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
 
     const bitViews = Array.from({ length: Constants.DIGIT_COUNT }, (_, i) => {
@@ -130,7 +138,6 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
         const bitText = createSvgElement(svg.namespaceURI, "text", {
             x: `${i * digitWidth + digitWidth / 2}`,
             y: `${Viewport.CANVAS_HEIGHT - 22}`,
-            
         });
         bitText.classList.add("bit-label");
         bitText.textContent = "0";
@@ -148,21 +155,22 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
             view.rect.classList.toggle("on", val === 1);
         });
 
+        hud.textContent =
+            `time: ${s.tickCount}  targets: ${s.targets.length}` +
+            `  exit: ${s.exit.length}  y: ${(s.targets[0]?.y ?? -1).toFixed(1)}`;
+
         if (s.gameEnd) {
             onFinish();
         }
     };
 };
 
-
 export const state$ = (): Observable<State> => {
-  const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
-    map((elapsed) => new Tick(elapsed)),
-  );
+    const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
+        map(elapsed => new Tick(elapsed)),
+    );
 
-  return merge(tick$, flipByKey$).pipe(
-    scan(reduceState, initialState),
-  );
+    return merge(tick$, flipByKey$).pipe(scan(reduceState, initialState));
 };
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.
@@ -173,6 +181,3 @@ if (typeof window !== "undefined") {
 
     click$.pipe(switchMap(() => state$())).subscribe(render());
 }
-
-
-

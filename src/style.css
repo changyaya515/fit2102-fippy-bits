@@ -115,3 +115,10 @@ svg rect {
     font-weight: bolder;
     text-align: center;
 }
+
+.hud {
+  fill: #555;
+  font-family: monospace;
+  font-size: 14px;
+  pointer-events: none;  
+}

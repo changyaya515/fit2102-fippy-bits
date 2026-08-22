@@ -9,6 +9,3 @@ describe("state$", () => {
         assert.isFunction(state$);
     });
 });
-
-
-
