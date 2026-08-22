@@ -13,16 +13,38 @@ export const createTarget = (
     y: 0,
 });
 
+export const fallSpeedAt = (createTime: number): number =>
+    Math.min(
+        Constants.MAX_FALL_SPEED,
+        Constants.BASE_FALL_SPEED +
+            Math.floor(createTime / Constants.SPEED_RAMP_TICKS) *
+                Constants.SPEED_STEP,
+    );
+
 /*
 Tick logic
 */
 export class Tick implements Action {
     constructor(public readonly step: number) {}
-    apply = (s: State): State => ({
+    /*
+     * Check if it's gameover instead of directly unsubscribe.
+     */
+    apply = (s: State): State => (s.gameEnd ? s : Tick.step(s));
+
+    private static step = (s: State): State => ({
         ...s,
         tickCount: s.tickCount + 1,
+        targets: s.targets.map(moveTarget),
     });
 }
+
+/**
+ * All tick-based movement comes through this function.
+ */
+export const moveTarget = (t: FallingTarget): FallingTarget => ({
+    ...t,
+    y: t.y + fallSpeedAt(t.createTime),
+});
 
 export const initialState: State = {
     gameEnd: false,
