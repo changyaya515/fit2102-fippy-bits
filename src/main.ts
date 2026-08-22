@@ -27,7 +27,7 @@ import {
     take,
 } from "rxjs";
 
-import { Action, Constants, State, Viewport , Target } from "./type";
+import { Action, Constants, State, Viewport , Target } from "./types";
 import { initialState, reduceState, ToggleBitAt, Tick } from "./state";
 
 
@@ -83,6 +83,7 @@ const flipByKey$ = merge(
 );
 
 
+
 /**
  * Creates an SVG element with the given properties.
  *
@@ -122,12 +123,14 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
             width: `${digitWidth - 8}`,
             height: "40",
             rx: "4",
+            "data-index": String(i),
         });
         rect.classList.add("bit");
 
         const bitText = createSvgElement(svg.namespaceURI, "text", {
             x: `${i * digitWidth + digitWidth / 2}`,
             y: `${Viewport.CANVAS_HEIGHT - 22}`,
+            
         });
         bitText.classList.add("bit-label");
         bitText.textContent = "0";
@@ -153,13 +156,12 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
 
 
 export const state$ = (): Observable<State> => {
-    /** Determines the rate of time steps */
-  const tick$ = interval(Constants.TICK_RATE_MS);
+  const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
+    map((elapsed) => new Tick(elapsed)),
+  );
 
-  return tick$.pipe(
-    scan((s: State, elapsed) => {
-      return new Tick(elapsed).apply(s);
-    }, initialState),
+  return merge(tick$, flipByKey$).pipe(
+    scan(reduceState, initialState),
   );
 };
 
