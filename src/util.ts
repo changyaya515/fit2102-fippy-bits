@@ -24,6 +24,11 @@ export abstract class RNG {
             Math.floor((hash / RNG.m) * n);
 }
 
+export const scaleToRange =
+    (min: number, max: number) =>
+    (scaledRng: number): number =>
+        min + ((scaledRng + 1) / 2) * (max - min);
+
 // Learn form workshop4
 export const not =
     <T>(f: (x: T) => boolean) =>
