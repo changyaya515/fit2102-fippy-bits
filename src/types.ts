@@ -30,6 +30,13 @@ export type FallingTarget = Readonly<{
     y: number;
 }>;
 
+export type RandomTargetData = Readonly<{
+    x: number;
+    value: number;
+    delay: number;
+    nextSeed: number;
+}>;
+
 // State processing
 export type State = Readonly<{
     gameEnd: boolean;

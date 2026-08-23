@@ -1,4 +1,15 @@
-import { Action, Bit, Constants, State, FallingTarget, Target } from "./types";
+import {
+    Action,
+    Bit,
+    Constants,
+    State,
+    FallingTarget,
+    Target,
+    RandomTargetData,
+} from "./types";
+
+import { RNG, scaleToRange } from "./util";
+import { Viewport } from "./types";
 
 export const initialState: State = {
     gameEnd: false,
@@ -57,5 +68,23 @@ export class ToggleBitAt implements Action {
               };
     }
 }
+
+export const generateRandomTargetData = (seed: number): RandomTargetData => {
+    const maxX = Viewport.CANVAS_WIDTH - Target.WIDTH;
+
+    const seed1 = RNG.hash(seed);
+    const x = Math.floor(scaleToRange(0, maxX)(RNG.scale(seed1)));
+
+    const seed2 = RNG.hash(seed1);
+    const value = Math.min(
+        Constants.MAX_VALUE - 1,
+        Math.floor(scaleToRange(0, Constants.MAX_VALUE)(RNG.scale(seed2))),
+    );
+
+    const seed3 = RNG.hash(seed2);
+    const delay = Math.floor(scaleToRange(1000, 3000)(RNG.scale(seed3)));
+
+    return { x, value, delay, nextSeed: seed3 };
+};
 
 export const reduceState = (s: State, action: Action): State => action.apply(s);
