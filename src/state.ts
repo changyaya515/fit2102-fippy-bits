@@ -87,4 +87,19 @@ export const generateRandomTargetData = (seed: number): RandomTargetData => {
     return { x, value, delay, nextSeed: seed3 };
 };
 
+export class SpawnTarget implements Action {
+    constructor(public readonly data: RandomTargetData) {}
+
+    apply = (s: State): State =>
+        s.gameEnd ? s : SpawnTarget.step(s, this.data);
+
+    private static step = (s: State, d: RandomTargetData): State => ({
+        ...s,
+        targets: [
+            ...s.targets,
+            { id: String(s.nextId), value: d.value, x: d.x, y: 0 },
+        ],
+        nextId: s.nextId + 1,
+    });
+}
 export const reduceState = (s: State, action: Action): State => action.apply(s);
