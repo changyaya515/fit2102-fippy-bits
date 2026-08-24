@@ -89,6 +89,15 @@ const flipByKey$ = merge(
     ),
 );
 
+export const flipByMouse$: Observable<Action> = fromEvent<MouseEvent>(
+    document,
+    "mousedown",
+).pipe(
+    map(e => (e.target as Element).getAttribute("data-index")),
+    filter(index => index !== null),
+    map(index => new ToggleBitAt(Number(index))),
+);
+
 /**
  * Creates an SVG element with the given properties.
  *
