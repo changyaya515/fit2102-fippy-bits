@@ -21,14 +21,24 @@ import {
     fromEvent,
     interval,
     map,
+    expand,
+    timer,
     merge,
+    startWith,
     scan,
     switchMap,
     take,
 } from "rxjs";
 
 import { Action, Constants, State, Viewport, Target } from "./types";
-import { initialState, reduceState, ToggleBitAt, Tick } from "./state";
+import {
+    initialState,
+    reduceState,
+    ToggleBitAt,
+    Tick,
+    generateRandomTargetData,
+    SpawnTarget,
+} from "./state";
 
 /**
  * Updates the state by proceeding with one time step.
@@ -109,6 +119,17 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
         `0 0 ${Viewport.CANVAS_WIDTH} ${Viewport.CANVAS_HEIGHT}`,
     );
 
+    const checkLine = createSvgElement(svg.namespaceURI, "line", {
+        x1: "0",
+        y1: String(Constants.CHECK_LINE),
+        x2: String(Viewport.CANVAS_WIDTH),
+        y2: String(Constants.CHECK_LINE),
+        stroke: "rgba(255, 0, 0, 0.5)",
+        "stroke-dasharray": "4",
+    });
+    checkLine.classList.add("check-line");
+    svg.appendChild(checkLine);
+
     /*
     Debug message
     */
@@ -156,7 +177,7 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
         });
 
         hud.textContent =
-            `time: ${s.tickCount}  targets: ${s.targets.length}` +
+            ` targets: ${s.targets.length}` +
             `  exit: ${s.exit.length}  y: ${(s.targets[0]?.y ?? -1).toFixed(1)}`;
 
         if (s.gameEnd) {
@@ -166,11 +187,21 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
 };
 
 export const state$ = (): Observable<State> => {
-    const tick$: Observable<Action> = interval(Constants.TICK_RATE_MS).pipe(
-        map(elapsed => new Tick(elapsed)),
+    const restart$ = fromEvent<KeyboardEvent>(document, "keydown").pipe(
+        filter((e: KeyboardEvent) => e.code === "KeyR"),
+        startWith(null),
     );
 
-    return merge(tick$, flipByKey$).pipe(scan(reduceState, initialState));
+    return restart$.pipe(
+        switchMap(() => {
+            const tick$: Observable<Action> = interval(
+                Constants.TICK_RATE_MS,
+            ).pipe(map(elapsed => new Tick(elapsed)));
+            return merge(tick$, flipByKey$, flipByMouse$).pipe(
+                scan(reduceState, initialState),
+            );
+        }),
+    );
 };
 
 // The following simply runs your main function on window load.  Make sure to leave it in place.
