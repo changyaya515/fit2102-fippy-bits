@@ -132,6 +132,11 @@ const createSvgElement = (
     return elem;
 };
 
+const toBaseText =
+    (base: number) =>
+    (value: number): string =>
+        value.toString(base).toUpperCase();
+
 const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGSVGElement | null;
     if (!svg) return () => {};
