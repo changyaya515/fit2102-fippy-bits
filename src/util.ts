@@ -40,3 +40,7 @@ export const isNotNullOrUndefined = <T extends object>(
 ): input is T => {
     return input != null;
 };
+
+export const attr = (e: Element, o: { [p: string]: unknown }) => {
+    for (const k in o) e.setAttribute(k, String(o[k]));
+};

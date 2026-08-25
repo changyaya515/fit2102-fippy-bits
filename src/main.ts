@@ -31,6 +31,7 @@ import {
 } from "rxjs";
 
 import { Action, Constants, State, Viewport, Target } from "./types";
+import { attr, isNotNullOrUndefined } from "./util";
 import {
     initialState,
     reduceState,
@@ -97,6 +98,18 @@ export const flipByMouse$: Observable<Action> = fromEvent<MouseEvent>(
     filter(index => index !== null),
     map(index => new ToggleBitAt(Number(index))),
 );
+
+const spawn$ = (seed: number): Observable<Action> => {
+    const first = generateRandomTargetData(seed);
+    return timer(first.delay).pipe(
+        map(() => first),
+        expand(row => {
+            const next = generateRandomTargetData(row.nextSeed);
+            return timer(next.delay).pipe(map(() => next));
+        }),
+        map(row => new SpawnTarget(row)),
+    );
+};
 
 /**
  * Creates an SVG element with the given properties.
