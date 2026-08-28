@@ -94,6 +94,19 @@ svg rect {
     float: right;
 }
 
+.target rect {
+    fill: white;
+    stroke: black;
+    stroke-width: 2;
+}
+
+.target text {
+    fill: black;
+    text-anchor: "middle";
+    font-family: monospace;
+    pointer-events: none;
+}
+
 .bit {
     fill: #ef9a9a;
     stroke: black;

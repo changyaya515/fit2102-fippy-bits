@@ -146,6 +146,45 @@ const toBaseText =
     (value: number): string =>
         value.toString(base).toUpperCase();
 
+const updateTargetView =
+    (rootSVG: SVGSVGElement, base: number) => (t: FallingTarget) => {
+        function createTargetView() {
+            const parent = createSvgElement(rootSVG.namespaceURI, "svg", {
+                id: t.id,
+                width: `${Target.WIDTH}`,
+                height: `${Target.HEIGHT}`,
+            });
+            parent.classList.add("target");
+
+            const rect = createSvgElement(rootSVG.namespaceURI, "rect", {
+                x: "0",
+                y: "0",
+                width: `${Target.WIDTH}`,
+                height: `${Target.HEIGHT}`,
+                rx: "6",
+            });
+
+            const text = createSvgElement(rootSVG.namespaceURI, "text", {
+                x: `${Target.WIDTH / 2}`,
+                y: `${Target.HEIGHT / 2 + 8}`,
+            });
+
+            parent.appendChild(rect);
+            parent.appendChild(text);
+            rootSVG.appendChild(parent);
+            return parent;
+        }
+
+        const parent = document.getElementById(t.id) || createTargetView();
+
+        attr(parent, { x: t.x, y: t.y });
+
+        const text = parent.querySelector("text");
+        if (text) {
+            text.textContent = toBaseText(base)(t.value);
+        }
+    };
+
 const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGSVGElement | null;
     if (!svg) return () => {};
@@ -204,47 +243,6 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
 
         return { rect, bitText };
     });
-
-    const updateTargetView =
-        (rootSVG: SVGSVGElement, base: number) => (t: FallingTarget) => {
-            function createTargetView() {
-                const rect = createSvgElement(rootSVG.namespaceURI, "rect", {
-                    id: t.id,
-                    width: `${Target.WIDTH}`,
-                    height: `${Target.HEIGHT}`,
-                    rx: "6",
-                    fill: "white",
-                    stroke: "black",
-                    "stroke-width": "2",
-                });
-
-                const text = createSvgElement(rootSVG.namespaceURI, "text", {
-                    id: `${t.id}-text`,
-                    "text-anchor": "middle",
-                    "font-family": "monospace",
-                    fill: "black",
-                    "pointer-events": "none",
-                });
-
-                rootSVG.appendChild(rect);
-                rootSVG.appendChild(text);
-                return { rect, text };
-            }
-
-            const rect =
-                document.getElementById(t.id) || createTargetView().rect;
-            const text = document.getElementById(`${t.id}-text`);
-
-            attr(rect, { x: t.x, y: t.y });
-
-            if (text) {
-                attr(text, {
-                    x: t.x + Target.WIDTH / 2,
-                    y: t.y + Target.HEIGHT / 2 + 8,
-                });
-                text.textContent = toBaseText(base)(t.value);
-            }
-        };
 
     return (s: State): void => {
         s.bits.forEach((val, i) => {
