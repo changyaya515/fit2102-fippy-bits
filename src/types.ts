@@ -6,7 +6,7 @@ export const Constants = {
     TICK_RATE_MS: 16, // Might need to change this!
     SEED: 1234,
     SPEED_INC: 0.0015,
-    INITIAL_SPEED: 1.2,
+    INITIAL_SPEED: 0.8,
     MAX_VALUE: 256,
     CHECK_LINE: 300,
 } as const;
@@ -46,6 +46,7 @@ export type State = Readonly<{
     exit: ReadonlyArray<FallingTarget>; // For target that need to romove
     score: number;
     nextId: number;
+    base: number;
 }>;
 
 export interface Action {

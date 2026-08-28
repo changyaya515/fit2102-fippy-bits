@@ -19,6 +19,7 @@ export const initialState: State = {
     exit: [],
     score: 0,
     nextId: 0,
+    base: 16,
 };
 
 const reachedCheckLine = (t: FallingTarget): boolean =>
@@ -102,4 +103,5 @@ export class SpawnTarget implements Action {
         nextId: s.nextId + 1,
     });
 }
+
 export const reduceState = (s: State, action: Action): State => action.apply(s);

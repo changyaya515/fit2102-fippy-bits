@@ -30,7 +30,14 @@ import {
     take,
 } from "rxjs";
 
-import { Action, Constants, State, Viewport, Target } from "./types";
+import {
+    Action,
+    Constants,
+    State,
+    Viewport,
+    Target,
+    FallingTarget,
+} from "./types";
 import { attr, isNotNullOrUndefined } from "./util";
 import {
     initialState,
@@ -110,6 +117,8 @@ const spawn$ = (seed: number): Observable<Action> => {
         map(row => new SpawnTarget(row)),
     );
 };
+
+const targetSpawn$: Observable<Action> = spawn$(Constants.SEED);
 
 /**
  * Creates an SVG element with the given properties.
@@ -196,18 +205,70 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
         return { rect, bitText };
     });
 
+    const updateTargetView =
+        (rootSVG: SVGSVGElement, base: number) => (t: FallingTarget) => {
+            function createTargetView() {
+                const rect = createSvgElement(rootSVG.namespaceURI, "rect", {
+                    id: t.id,
+                    width: `${Target.WIDTH}`,
+                    height: `${Target.HEIGHT}`,
+                    rx: "6",
+                    fill: "white",
+                    stroke: "black",
+                    "stroke-width": "2",
+                });
+
+                const text = createSvgElement(rootSVG.namespaceURI, "text", {
+                    id: `${t.id}-text`,
+                    "text-anchor": "middle",
+                    "font-family": "monospace",
+                    fill: "black",
+                    "pointer-events": "none",
+                });
+
+                rootSVG.appendChild(rect);
+                rootSVG.appendChild(text);
+                return { rect, text };
+            }
+
+            const rect =
+                document.getElementById(t.id) || createTargetView().rect;
+            const text = document.getElementById(`${t.id}-text`);
+
+            attr(rect, { x: t.x, y: t.y });
+
+            if (text) {
+                attr(text, {
+                    x: t.x + Target.WIDTH / 2,
+                    y: t.y + Target.HEIGHT / 2 + 8,
+                });
+                text.textContent = toBaseText(base)(t.value);
+            }
+        };
+
     return (s: State): void => {
         s.bits.forEach((val, i) => {
             const view = bitViews[i];
             view.bitText.textContent = String(val);
-            view.rect.classList.toggle("on", val === 1);
+            //view.rect.classList.toggle("on", val === 1);
         });
+
+        s.targets.forEach(updateTargetView(svg, s.base));
 
         hud.textContent =
             ` targets: ${s.targets.length}` +
             `  exit: ${s.exit.length}  y: ${(s.targets[0]?.y ?? -1).toFixed(1)}`;
 
         if (s.gameEnd) {
+            const v = document.createElementNS(svg.namespaceURI, "text");
+            attr(v, {
+                id: "gameOver",
+                x: Viewport.CANVAS_WIDTH / 2,
+                y: Viewport.CANVAS_HEIGHT / 2,
+                "text-anchor": "middle",
+            });
+            v.textContent = "Game Over";
+            svg.appendChild(v);
             onFinish();
         }
     };
@@ -224,7 +285,8 @@ export const state$ = (): Observable<State> => {
             const tick$: Observable<Action> = interval(
                 Constants.TICK_RATE_MS,
             ).pipe(map(elapsed => new Tick(elapsed)));
-            return merge(tick$, flipByKey$, flipByMouse$).pipe(
+
+            return merge(tick$, flipByKey$, flipByMouse$, targetSpawn$).pipe(
                 scan(reduceState, initialState),
             );
         }),
