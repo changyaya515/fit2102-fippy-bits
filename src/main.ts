@@ -144,7 +144,7 @@ const createSvgElement = (
 const toBaseText =
     (base: number) =>
     (value: number): string =>
-        value.toString(base).toUpperCase();
+        value.toString(base).toUpperCase().padStart(2, "0");
 
 const updateTargetView =
     (rootSVG: SVGSVGElement, base: number) => (t: FallingTarget) => {
@@ -185,7 +185,13 @@ const updateTargetView =
         }
     };
 
-const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
+const removeTargets = (exit: ReadonlyArray<FallingTarget>): void => {
+    exit.map(t => document.getElementById(t.id))
+        .filter(isNotNullOrUndefined)
+        .forEach(element => element.remove());
+};
+
+const render = (): ((s: State) => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGSVGElement | null;
     if (!svg) return () => {};
 
@@ -244,7 +250,20 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
         return { rect, bitText };
     });
 
+    const gameOverText = createSvgElement(svg.namespaceURI, "text", {
+        id: "gameOver",
+        x: String(Viewport.CANVAS_WIDTH / 2),
+        y: String(Viewport.CANVAS_HEIGHT / 2),
+        "text-anchor": "middle",
+        "dominant-baseline": "central",
+    });
+    gameOverText.textContent = "Game Over";
+    hide(gameOverText);
+    svg.appendChild(gameOverText);
+
     return (s: State): void => {
+        removeTargets(s.exit);
+
         s.bits.forEach((val, i) => {
             const view = bitViews[i];
             view.bitText.textContent = String(val);
@@ -257,18 +276,7 @@ const render = (onFinish: () => void = () => {}): ((s: State) => void) => {
             ` targets: ${s.targets.length}` +
             `  exit: ${s.exit.length}  y: ${(s.targets[0]?.y ?? -1).toFixed(1)}`;
 
-        if (s.gameEnd) {
-            const v = document.createElementNS(svg.namespaceURI, "text");
-            attr(v, {
-                id: "gameOver",
-                x: Viewport.CANVAS_WIDTH / 2,
-                y: Viewport.CANVAS_HEIGHT / 2,
-                "text-anchor": "middle",
-            });
-            v.textContent = "Game Over";
-            svg.appendChild(v);
-            onFinish();
-        }
+        s.gameEnd ? show(gameOverText) : hide(gameOverText);
     };
 };
 

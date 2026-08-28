@@ -43,14 +43,17 @@ export class Tick implements Action {
     private static step = (s: State): State => {
         const speed = s.speed + Constants.SPEED_INC;
         const moved = s.targets.map(moveTarget(speed));
+
         const crossed = moved.filter(reachedCheckLine);
+        const active = moved.filter(t => !reachedCheckLine(t));
+        const isGameOver = crossed.length > 0;
 
         return {
             ...s,
             speed,
-            targets: moved,
-            exit: [],
-            gameEnd: crossed.length > 0,
+            targets: isGameOver ? [] : active,
+            exit: isGameOver ? moved : crossed,
+            gameEnd: isGameOver,
         };
     };
 }
