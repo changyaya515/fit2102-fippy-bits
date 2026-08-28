@@ -44,17 +44,12 @@ export class Tick implements Action {
         const speed = s.speed + Constants.SPEED_INC;
         const moved = s.targets.map(moveTarget(speed));
 
-        const crossed = moved.filter(reachedCheckLine);
-        const active = moved.filter(t => !reachedCheckLine(t));
-        const isGameOver = crossed.length > 0;
-
-        return {
+        return handleResolution({
             ...s,
             speed,
-            targets: isGameOver ? [] : active,
-            exit: isGameOver ? moved : crossed,
-            gameEnd: isGameOver,
-        };
+            targets: moved,
+            exit: [],
+        });
     };
 }
 
@@ -66,10 +61,11 @@ export class ToggleBitAt implements Action {
     apply(s: State): State {
         return s.gameEnd || this.index < 0 || this.index >= s.bits.length
             ? s
-            : {
+            : handleResolution({
                   ...s,
                   bits: s.bits.map((b, i) => (i === this.index ? flip(b) : b)),
-              };
+                  exit: [],
+              });
     }
 }
 
@@ -106,5 +102,28 @@ export class SpawnTarget implements Action {
         nextId: s.nextId + 1,
     });
 }
+
+export const bitsToValue = (bits: ReadonlyArray<Bit>): number =>
+    bits.reduce<number>((acc, bit) => acc * 2 + bit, 0);
+
+const handleResolution = (s: State): State => {
+    if (s.targets.length === 0) return s;
+    const lowest = s.targets[0];
+
+    const matched = bitsToValue(s.bits) === lowest.value;
+    const crossed = reachedCheckLine(lowest);
+
+    return matched
+        ? {
+              ...s,
+              targets: s.targets.slice(1),
+              exit: s.exit.concat([lowest]),
+              score: s.score + 1,
+              bits: s.bits.map((): Bit => 0),
+          }
+        : crossed
+          ? { ...s, gameEnd: true }
+          : s;
+};
 
 export const reduceState = (s: State, action: Action): State => action.apply(s);

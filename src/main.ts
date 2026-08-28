@@ -211,6 +211,14 @@ const render = (): ((s: State) => void) => {
     checkLine.classList.add("check-line");
     svg.appendChild(checkLine);
 
+    const scoreDisplay = createSvgElement(svg.namespaceURI, "text", {
+        x: `${Viewport.CANVAS_WIDTH - 15}`,
+        y: "24",
+        "text-anchor": "end",
+    });
+    scoreDisplay.classList.add("score-display");
+    svg.appendChild(scoreDisplay);
+
     /*
     Debug message
     */
@@ -263,6 +271,7 @@ const render = (): ((s: State) => void) => {
 
     return (s: State): void => {
         removeTargets(s.exit);
+        scoreDisplay.textContent = `Score: ${s.score}`;
 
         s.bits.forEach((val, i) => {
             const view = bitViews[i];
