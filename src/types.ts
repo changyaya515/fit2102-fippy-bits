@@ -2,14 +2,17 @@ export type Bit = 0 | 1;
 
 export const Constants = {
     DIGIT_COUNT: 8,
-    BASE: 16,
     TICK_RATE_MS: 16, // Might need to change this!
     SEED: 1234,
     SPEED_INC: 0.0015,
-    INITIAL_SPEED: 0.8,
+    INITIAL_SPEED: 0.2,
     MAX_VALUE: 256,
     CHECK_LINE: 300,
+    DEFAULT_BASE_INDEX: 3,
 } as const;
+
+export const SUPPORTED_BASES = [2, 8, 10, 16] as const;
+export const DEFAULT_BASE = SUPPORTED_BASES[Constants.DEFAULT_BASE_INDEX];
 
 export const VALUE_RANGE = 2 ** Constants.DIGIT_COUNT;
 

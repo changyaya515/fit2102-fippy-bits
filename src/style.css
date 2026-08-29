@@ -102,7 +102,7 @@ svg rect {
 
 .target text {
     fill: black;
-    text-anchor: "middle";
+    text-anchor: middle;
     font-family: monospace;
     pointer-events: none;
 }

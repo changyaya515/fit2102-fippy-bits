@@ -6,6 +6,8 @@ import {
     FallingTarget,
     Target,
     RandomTargetData,
+    DEFAULT_BASE,
+    SUPPORTED_BASES,
 } from "./types";
 
 import { RNG, scaleToRange } from "./util";
@@ -19,8 +21,16 @@ export const initialState: State = {
     exit: [],
     score: 0,
     nextId: 0,
-    base: 16,
+    base: DEFAULT_BASE,
 };
+
+export const baseFromIndex = (i: number): number =>
+    SUPPORTED_BASES[i] ?? DEFAULT_BASE;
+
+export class ChangeBase implements Action {
+    constructor(public readonly base: number) {}
+    apply = (s: State): State => ({ ...s, base: this.base });
+}
 
 const reachedCheckLine = (t: FallingTarget): boolean =>
     t.y + Target.HEIGHT >= Constants.CHECK_LINE;

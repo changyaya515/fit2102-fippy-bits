@@ -46,6 +46,8 @@ import {
     Tick,
     generateRandomTargetData,
     SpawnTarget,
+    baseFromIndex,
+    ChangeBase,
 } from "./state";
 
 /**
@@ -120,6 +122,14 @@ const spawn$ = (seed: number): Observable<Action> => {
 
 const targetSpawn$: Observable<Action> = spawn$(Constants.SEED);
 
+const slider = document.querySelector("#baseSlider") as HTMLInputElement;
+
+const swapBase$: Observable<Action> = fromEvent<Event>(slider, "input").pipe(
+    map(event => Number((event.target as HTMLInputElement).value)),
+    map(baseFromIndex),
+    map(b => new ChangeBase(b)),
+);
+
 /**
  * Creates an SVG element with the given properties.
  *
@@ -191,8 +201,18 @@ const removeTargets = (exit: ReadonlyArray<FallingTarget>): void => {
         .forEach(element => element.remove());
 };
 
+const syncTargets = (rootSVG: SVGSVGElement, s: State): void =>
+    Array.from(rootSVG.querySelectorAll(".target"))
+        .filter(element => s.targets.every(t => t.id !== element.id))
+        .forEach(element => element.remove());
+
 const render = (): ((s: State) => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGSVGElement | null;
+    const baseText = document.querySelector("#baseText") as HTMLElement;
+    const scoreText = document.querySelector(
+        "#scoreText",
+    ) as HTMLElement | null;
+
     if (!svg) return () => {};
 
     svg.setAttribute(
@@ -210,14 +230,6 @@ const render = (): ((s: State) => void) => {
     });
     checkLine.classList.add("check-line");
     svg.appendChild(checkLine);
-
-    const scoreDisplay = createSvgElement(svg.namespaceURI, "text", {
-        x: `${Viewport.CANVAS_WIDTH - 15}`,
-        y: "24",
-        "text-anchor": "end",
-    });
-    scoreDisplay.classList.add("score-display");
-    svg.appendChild(scoreDisplay);
 
     /*
     Debug message
@@ -271,12 +283,22 @@ const render = (): ((s: State) => void) => {
 
     return (s: State): void => {
         removeTargets(s.exit);
-        scoreDisplay.textContent = `Score: ${s.score}`;
+        syncTargets(svg, s);
+
+        if (scoreText) {
+            scoreText.textContent = String(s.score);
+        }
+
+        if (baseText) {
+            baseText.textContent = String(s.base);
+        }
 
         s.bits.forEach((val, i) => {
             const view = bitViews[i];
             view.bitText.textContent = String(val);
-            //view.rect.classList.toggle("on", val === 1);
+            val === 1
+                ? view.rect.classList.add("on")
+                : view.rect.classList.remove("on");
         });
 
         s.targets.forEach(updateTargetView(svg, s.base));
@@ -301,9 +323,13 @@ export const state$ = (): Observable<State> => {
                 Constants.TICK_RATE_MS,
             ).pipe(map(elapsed => new Tick(elapsed)));
 
-            return merge(tick$, flipByKey$, flipByMouse$, targetSpawn$).pipe(
-                scan(reduceState, initialState),
-            );
+            return merge(
+                tick$,
+                flipByKey$,
+                flipByMouse$,
+                targetSpawn$,
+                swapBase$,
+            ).pipe(scan(reduceState, initialState));
         }),
     );
 };
