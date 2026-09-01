@@ -18,6 +18,7 @@ import {
     Observable,
     catchError,
     filter,
+    exhaustMap,
     fromEvent,
     interval,
     map,
@@ -48,6 +49,8 @@ import {
     SpawnTarget,
     baseFromIndex,
     ChangeBase,
+    setMultiplier,
+    bitsToValue,
 } from "./state";
 
 /**
@@ -130,6 +133,19 @@ const swapBase$: Observable<Action> = fromEvent<Event>(slider, "input").pipe(
     map(b => new ChangeBase(b)),
 );
 
+const decayingBonus$: Observable<Action> = fromEvent<KeyboardEvent>(
+    document,
+    "keydown",
+).pipe(
+    filter(event => event.code === "Space" && !event.repeat),
+    exhaustMap(() =>
+        timer(0, 1000).pipe(
+            take(Constants.MAX_MULTIPLIER),
+            map(step => new setMultiplier(Constants.INITIAL_MULTIPLIER - step)),
+        ),
+    ),
+);
+
 /**
  * Creates an SVG element with the given properties.
  *
@@ -209,6 +225,9 @@ const syncTargets = (rootSVG: SVGSVGElement, s: State): void =>
 const render = (): ((s: State) => void) => {
     const svg = document.querySelector("#svgCanvas") as SVGSVGElement | null;
     const baseText = document.querySelector("#baseText") as HTMLElement;
+    const currentValueText = document.querySelector(
+        "#currentValueText",
+    ) as HTMLElement | null;
     const scoreText = document.querySelector(
         "#scoreText",
     ) as HTMLElement | null;
@@ -289,6 +308,12 @@ const render = (): ((s: State) => void) => {
             scoreText.textContent = String(s.score);
         }
 
+        if (currentValueText) {
+            currentValueText.textContent = toBaseText(s.base)(
+                bitsToValue(s.bits),
+            );
+        }
+
         if (baseText) {
             baseText.textContent = String(s.base);
         }
@@ -329,6 +354,7 @@ export const state$ = (): Observable<State> => {
                 flipByMouse$,
                 targetSpawn$,
                 swapBase$,
+                decayingBonus$,
             ).pipe(scan(reduceState, initialState));
         }),
     );

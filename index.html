@@ -22,10 +22,45 @@
                 <div id="info" class="flex col">
                     <div class="text">
                         <span class="left">Score: </span>
-                        <span class="right" id="scoreText">...</span>
+                        <span class="right" id="scoreText">0</span>
+                    </div>
+                    <div class="text">
+                       <span class="left">Current: </span>
+                       <span class="right" id="currentValueText">00</span>
                     </div>
                     <p>Base: <span id="baseText">16</span></p>
-                    <input type="range" id="baseSlider" min="0" max="3" step="1" value="3" />
+                    <input
+                        type="range"
+                        id="baseSlider"
+                        min="0"
+                        max="3"
+                        step="1"
+                        value="3"
+                    />
+
+                    <div id="controls">
+                        <h2>Controls:</h2>
+                        <table>
+                            <tr>
+                                <td>Get Multiplier</td>
+                                <td>
+                                    <div
+                                        id="Space"
+                                        class="key"
+                                        style="width: 50px;"
+                                    >
+                                        Space
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Restart</td>
+                                <td>
+                                    <div id="KeyR" class="key">R</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
             </div>
         </main>

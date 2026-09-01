@@ -22,6 +22,7 @@ export const initialState: State = {
     score: 0,
     nextId: 0,
     base: DEFAULT_BASE,
+    multiplier: 1,
 };
 
 export const baseFromIndex = (i: number): number =>
@@ -128,12 +129,19 @@ const handleResolution = (s: State): State => {
               ...s,
               targets: s.targets.slice(1),
               exit: s.exit.concat([lowest]),
-              score: s.score + 1,
+              score: s.score + s.multiplier,
               bits: s.bits.map((): Bit => 0),
           }
         : crossed
           ? { ...s, gameEnd: true }
           : s;
 };
+
+export class setMultiplier implements Action {
+    constructor(public readonly multiplier: number) {}
+    apply(s: State): State {
+        return s.gameEnd ? s : { ...s, multiplier: this.multiplier };
+    }
+}
 
 export const reduceState = (s: State, action: Action): State => action.apply(s);

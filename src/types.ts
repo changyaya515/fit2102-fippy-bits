@@ -5,10 +5,12 @@ export const Constants = {
     TICK_RATE_MS: 16, // Might need to change this!
     SEED: 1234,
     SPEED_INC: 0.0015,
-    INITIAL_SPEED: 0.2,
+    INITIAL_SPEED: 0.015,
     MAX_VALUE: 256,
     CHECK_LINE: 300,
     DEFAULT_BASE_INDEX: 3,
+    MAX_MULTIPLIER: 4,
+    INITIAL_MULTIPLIER: 4,
 } as const;
 
 export const SUPPORTED_BASES = [2, 8, 10, 16] as const;
@@ -50,6 +52,7 @@ export type State = Readonly<{
     score: number;
     nextId: number;
     base: number;
+    multiplier: number;
 }>;
 
 export interface Action {
