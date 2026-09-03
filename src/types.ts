@@ -4,8 +4,8 @@ export const Constants = {
     DIGIT_COUNT: 8,
     TICK_RATE_MS: 16, // Might need to change this!
     SEED: 1234,
-    SPEED_INC: 0.0015,
-    INITIAL_SPEED: 0.015,
+    SPEED_INC: 0.0005,
+    INITIAL_SPEED: 0.005,
     MAX_VALUE: 256,
     CHECK_LINE: 300,
     DEFAULT_BASE_INDEX: 3,

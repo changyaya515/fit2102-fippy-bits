@@ -131,6 +131,7 @@ svg rect {
     fill: black;
     font-family: monospace;
     font-size: 18px;
+    pointer-events: none;
 }
 
 #gameOver {

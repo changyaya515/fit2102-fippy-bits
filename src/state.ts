@@ -25,6 +25,7 @@ export const initialState: State = {
     multiplier: 1,
 };
 
+// Maps slider index to supported base, if out of bounds then falling back to default
 export const baseFromIndex = (i: number): number =>
     SUPPORTED_BASES[i] ?? DEFAULT_BASE;
 
@@ -33,10 +34,12 @@ export class ChangeBase implements Action {
     apply = (s: State): State => ({ ...s, base: this.base });
 }
 
+// Checks if the bottom edge of a target has hit the check line
 const reachedCheckLine = (t: FallingTarget): boolean =>
     t.y + Target.HEIGHT >= Constants.CHECK_LINE;
+
 /**
- * All tick-based movement comes through this function.
+ * curried helper to update target y position based on current speed.
  */
 const moveTarget =
     (speed: number) =>
@@ -46,7 +49,9 @@ const moveTarget =
     });
 
 /*
-Tick logic
+* Tick logic
+* - Ramps up falling speed, updates target positions, and checks collisions/matches.
+
 */
 export class Tick implements Action {
     apply = (s: State): State => (s.gameEnd ? s : Tick.step(s));
@@ -59,13 +64,19 @@ export class Tick implements Action {
             ...s,
             speed,
             targets: moved,
-            exit: [],
         });
     };
 }
 
 const flip = (b: Bit): Bit => (b === 0 ? 1 : 0);
 
+/*
+ * flips bit at index and checks if value matches target
+ * ignores input if out of bounds or game is over
+ *
+ * handleResolution is called here:
+ * - Checks target match immediately once keypress without waiting for next Tick.
+ */
 export class ToggleBitAt implements Action {
     constructor(public readonly index: number) {}
 
@@ -75,11 +86,19 @@ export class ToggleBitAt implements Action {
             : handleResolution({
                   ...s,
                   bits: s.bits.map((b, i) => (i === this.index ? flip(b) : b)),
-                  exit: [],
               });
     }
 }
 
+/**
+ * Generates deterministic spawn parameters for a new target from a single seed.
+ *
+ * Hashes the seed step-by-step to get 3 independent random values.
+ * x: Random horizontal position clamped within canvas bounds.
+ * value: Random target number in range [0, 255].
+ * delay: Random spawn interval between 1000ms - 3000ms.
+ * nextSeed: Passes seed3 forward so the next target continues the RNG.
+ */
 export const generateRandomTargetData = (seed: number): RandomTargetData => {
     const maxX = Viewport.CANVAS_WIDTH - Target.WIDTH;
 
@@ -98,6 +117,10 @@ export const generateRandomTargetData = (seed: number): RandomTargetData => {
     return { x, value, delay, nextSeed: seed3 };
 };
 
+/**
+ * Action that spawns a new falling target at top of the screen.
+ * Appends the new target with a unique incrementing string ID.
+ */
 export class SpawnTarget implements Action {
     constructor(public readonly data: RandomTargetData) {}
 
@@ -114,9 +137,18 @@ export class SpawnTarget implements Action {
     });
 }
 
+/**
+ * Converts an 8-bit array to decimal (0-255)
+ */
 export const bitsToValue = (bits: ReadonlyArray<Bit>): number =>
     bits.reduce<number>((acc, bit) => acc * 2 + bit, 0);
 
+/**
+ * Checks the if the lowest target touch the checkLine.
+ *
+ * - Match: Pops target, adds to exit queue, adds score, and resets bits to 0.
+ * - Crossed line: Ends the game if the lowest target hits the check line.
+ */
 const handleResolution = (s: State): State => {
     if (s.targets.length === 0) return s;
     const lowest = s.targets[0];
@@ -137,6 +169,7 @@ const handleResolution = (s: State): State => {
           : s;
 };
 
+// Updates current score multiplier from bonus stream (ignored if game is over)
 export class setMultiplier implements Action {
     constructor(public readonly multiplier: number) {}
     apply(s: State): State {
@@ -144,4 +177,10 @@ export class setMultiplier implements Action {
     }
 }
 
-export const reduceState = (s: State, action: Action): State => action.apply(s);
+/**
+ * Root state reducer applying the given action to state.
+ *
+ * - Clears s.exit on each action so removed targets are only kept for one frame.
+ */
+export const reduceState = (s: State, action: Action): State =>
+    action.apply({ ...s, exit: [] });
