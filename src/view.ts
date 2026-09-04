@@ -143,17 +143,6 @@ export const render = (): ((s: State) => void) => {
         `0 0 ${Viewport.CANVAS_WIDTH} ${Viewport.CANVAS_HEIGHT}`,
     );
 
-    const checkLine = createSvgElement(svg.namespaceURI, "line", {
-        x1: "0",
-        y1: String(Constants.CHECK_LINE),
-        x2: String(Viewport.CANVAS_WIDTH),
-        y2: String(Constants.CHECK_LINE),
-        stroke: "rgba(255, 0, 0, 0.5)",
-        "stroke-dasharray": "4",
-    });
-    checkLine.classList.add("check-line");
-    svg.appendChild(checkLine);
-
     const digitWidth = Viewport.CANVAS_WIDTH / Constants.DIGIT_COUNT;
 
     const bitViews = Array.from({ length: Constants.DIGIT_COUNT }, (_, i) => {
