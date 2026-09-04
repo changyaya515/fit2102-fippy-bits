@@ -8,11 +8,15 @@ import {
     RandomTargetData,
     DEFAULT_BASE,
     SUPPORTED_BASES,
+    VALUE_RANGE,
 } from "./types";
-
 import { RNG, scaleToRange } from "./util";
 import { Viewport } from "./types";
 
+/**
+ * Initial game state and seed for `scan`.
+ * `bonus` defaults to 1  because every match is worth at least one point.
+ */
 export const initialState: State = {
     gameEnd: false,
     speed: Constants.INITIAL_SPEED,
@@ -22,13 +26,19 @@ export const initialState: State = {
     score: 0,
     nextId: 0,
     base: DEFAULT_BASE,
-    multiplier: 1,
+    bonus: 1,
 };
 
 // Maps slider index to supported base, if out of bounds then falling back to default
 export const baseFromIndex = (i: number): number =>
     SUPPORTED_BASES[i] ?? DEFAULT_BASE;
 
+/**
+ * Changes the display base.
+ *
+ * Has no `gameEnd` guard because it affects presentation only, so the player is
+ * still allowed to switch base on the game over screen to inspect the value they missed.
+ */
 export class ChangeBase implements Action {
     constructor(public readonly base: number) {}
     apply = (s: State): State => ({ ...s, base: this.base });
@@ -49,10 +59,10 @@ const moveTarget =
     });
 
 /*
-* Tick logic
-* - Ramps up falling speed, updates target positions, and checks collisions/matches.
-
-*/
+ * Tick logic
+ * - Accelerates game speed, moves all targets down, and resolves the lowest one.
+ * - Frozen once `gameEnd` is true, stopping game progress without tearing down streams.
+ */
 export class Tick implements Action {
     apply = (s: State): State => (s.gameEnd ? s : Tick.step(s));
 
@@ -70,12 +80,12 @@ export class Tick implements Action {
 
 const flip = (b: Bit): Bit => (b === 0 ? 1 : 0);
 
-/*
- * flips bit at index and checks if value matches target
- * ignores input if out of bounds or game is over
+/**
+ * Flips the bit at `index` and immediately check for a match.
  *
- * handleResolution is called here:
- * - Checks target match immediately once keypress without waiting for next Tick.
+ * - Ignores invalid indices and inputs after game over, so callers don't need
+ *   to do bounds checking.
+ * - Resolves directly on input instead of waiting next Tick, giving instant feedback.
  */
 export class ToggleBitAt implements Action {
     constructor(public readonly index: number) {}
@@ -93,11 +103,11 @@ export class ToggleBitAt implements Action {
 /**
  * Generates deterministic spawn parameters for a new target from a single seed.
  *
- * Hashes the seed step-by-step to get 3 independent random values.
- * x: Random horizontal position clamped within canvas bounds.
- * value: Random target number in range [0, 255].
- * delay: Random spawn interval between 1000ms - 3000ms.
- * nextSeed: Passes seed3 forward so the next target continues the RNG.
+ * Hashes the seed sequentially to derive 3 random values:
+ * - x: Horizontal position within canvas bounds.
+ * - value: Target number in range [0, 255].
+ * - delay: Spawn delay between 1000ms - 3000ms.
+ * - nextSeed: Advances RNG state using seed3 for the next spawn.
  */
 export const generateRandomTargetData = (seed: number): RandomTargetData => {
     const maxX = Viewport.CANVAS_WIDTH - Target.WIDTH;
@@ -107,8 +117,8 @@ export const generateRandomTargetData = (seed: number): RandomTargetData => {
 
     const seed2 = RNG.hash(seed1);
     const value = Math.min(
-        Constants.MAX_VALUE - 1,
-        Math.floor(scaleToRange(0, Constants.MAX_VALUE)(RNG.scale(seed2))),
+        VALUE_RANGE - 1,
+        Math.floor(scaleToRange(0, VALUE_RANGE)(RNG.scale(seed2))),
     );
 
     const seed3 = RNG.hash(seed2);
@@ -144,10 +154,14 @@ export const bitsToValue = (bits: ReadonlyArray<Bit>): number =>
     bits.reduce<number>((acc, bit) => acc * 2 + bit, 0);
 
 /**
- * Checks the if the lowest target touch the checkLine.
+ * Resolves the lowest target against current player input and check line.
  *
- * - Match: Pops target, adds to exit queue, adds score, and resets bits to 0.
- * - Crossed line: Ends the game if the lowest target hits the check line.
+ * - Match: the target is dropped, queued in `exit` for the view to delete,
+ *   the current bonus is added to the score, and the bit row resets to zero.
+ * - Crossed line: the game ends.
+ *
+ * All targets share one global speed and are appended in spawn
+ * order, so targets[0] is always the lowest (closest to the check line).
  */
 const handleResolution = (s: State): State => {
     if (s.targets.length === 0) return s;
@@ -161,7 +175,7 @@ const handleResolution = (s: State): State => {
               ...s,
               targets: s.targets.slice(1),
               exit: s.exit.concat([lowest]),
-              score: s.score + s.multiplier,
+              score: s.score + s.bonus,
               bits: s.bits.map((): Bit => 0),
           }
         : crossed
@@ -169,11 +183,14 @@ const handleResolution = (s: State): State => {
           : s;
 };
 
-// Updates current score multiplier from bonus stream (ignored if game is over)
-export class setMultiplier implements Action {
-    constructor(public readonly multiplier: number) {}
+/**
+ * Sets the additive score bonus produced by the decay stream.
+ * Ignored once the game is over, so a bonus window cannot outlive the run.
+ */
+export class SetBonus implements Action {
+    constructor(public readonly bonus: number) {}
     apply(s: State): State {
-        return s.gameEnd ? s : { ...s, multiplier: this.multiplier };
+        return s.gameEnd ? s : { ...s, bonus: this.bonus };
     }
 }
 

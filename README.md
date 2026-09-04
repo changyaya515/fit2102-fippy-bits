@@ -62,10 +62,55 @@ Avoid separating code into too many files as it makes it hard to mark. The maxim
 
 ```
 src/
-  main.ts        -- main code logic inc. core game loop
-  types.ts       -- common types and type aliases
-  util.ts        -- util functions
-  state.ts       -- state processing and transformation
-  view.ts        -- rendering
-  observable.ts  -- functions to create Observable streams
+  main.ts     -- core game loop: all Observable streams and the single subscribe
+  types.ts    -- common types, type aliases and constants
+  util.ts     -- pure utility functions (RNG, scaling, DOM attribute helper)
+  state.ts    -- state processing and transformation (Action classes, reduceState)
+  view.ts     -- rendering (all DOM/SVG side effects)
+  style.css   -- stylesheet
 ```
+
+## Implementation Features
+
+### Deterministic PRNG
+`Math.random()` isn't referentially transparent, so target `x`, `value`, and `delay` all come from the pure PRNG hash in `util.ts`. `generateRandomTargetData` hashes a seed three times and returns nextSeed, which `expand` feeds into the next target. The same `Constants.SEED` always produces the exact same targets.
+
+### Continuous Speed Ramp
+The game scales difficulty smoothly rather than through stepped stages. Each `Tick` increments global falling speed, updating active target positions uniformly without mutating existing target objects.
+
+## Interpretation of Ambiguous Requirements
+
+1. Targets resolve immediately on keypress rather than waiting for the next Tick. 
+   To prevent double-scoring, matching pops the target, awards score, and resets 
+   all bits to zero in the same state transition.
+
+2. Values are dynamically clamped to [0, 2 ** DIGIT_COUNT - 1] instead of a hard-coded 256. 
+   This ensures targets are always winnable even if DIGIT_COUNT changes.
+
+3. I chose to accelerate only vertical falling speed (`s.speed`), leaving spawn intervals 
+   strictly tied to the deterministic PRNG to preserve test reproducibility.
+
+## Advanced Features Implementation
+
+### 1. Number base switching (2 / 8 / 10 / 16)
+
+Slider input events pipe through a stream, map via baseFromIndex, and dispatch a ChangeBase action.
+
+Design Choices:
+
+- Only State.base updates. Game matching logic always checks raw binary values, keeping 
+  number representation purely as a display concern in the view.
+
+- Changing the base never touches active targets, speeds, or scores, 
+  making state transitions isolated and safe to toggle at any time (even after game over).
+
+### 2. Decaying bonus
+
+Pressing Space triggers a temporary 4-second bonus window (+4, +3, +2, +1 points per match) driven by `timer(0, 1000).pipe(take(Constants.BONUS_DURATION))` emitting pure SetBonus actions.
+
+Design Choices:
+
+- Uses `switchMap` so pressing Space again cleanly cancels the previous timer and restarts 
+  the bonus countdown immediately.
+- Holding down Space won't repeatedly trigger new bonus windows.
+

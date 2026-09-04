@@ -16,9 +16,7 @@ import "./style.css";
 
 import {
     Observable,
-    catchError,
     filter,
-    exhaustMap,
     fromEvent,
     interval,
     map,
@@ -41,7 +39,7 @@ import {
     SpawnTarget,
     baseFromIndex,
     ChangeBase,
-    setMultiplier,
+    SetBonus,
 } from "./state";
 import { render } from "./view";
 
@@ -49,11 +47,11 @@ import { render } from "./view";
  * Recursively generates target spawn actions using a deterministic RNG seed.
  *
  * Design Choice:
- * - Uses `expand` instead of `interval` so each target can dynamically
- *   schedules the next timer based on its own calculated `delay`.
- * - Same seed gives the same targets, and it restarts cleanly on a new game.
+ * - Uses `expand` instead of `interval` because each targets has its own
+ *   random delay, so every emission schedules the next timer dynamically.
+ * - Passes `nextSeed` forward each time, keeping the spawn sequence
+ *   deterministic and easy to test.
  */
-
 const spawn$ = (seed: number): Observable<Action> => {
     const first = generateRandomTargetData(seed);
     return timer(first.delay).pipe(
@@ -66,58 +64,6 @@ const spawn$ = (seed: number): Observable<Action> => {
     );
 };
 
-const key$ = fromEvent<KeyboardEvent>(document, "keydown");
-
-const fromKey = (keyCode: string, action: Action): Observable<Action> =>
-    key$.pipe(
-        filter(({ code }) => code === keyCode),
-        map(() => action),
-    );
-
-const flipByKey$ = merge(
-    ...Array.from({ length: Constants.DIGIT_COUNT }, (_, i) =>
-        fromKey(`Digit${i + 1}`, new ToggleBitAt(i)),
-    ),
-);
-
-// Listens for clicks on bit elements using the "data-index" HTML attribute
-const flipByMouse$: Observable<Action> = fromEvent<MouseEvent>(
-    document,
-    "mousedown",
-).pipe(
-    map(e => (e.target as Element).getAttribute("data-index")),
-    filter(index => index !== null),
-    map(index => new ToggleBitAt(Number(index))),
-);
-
-// Updates the number base (2, 8, 10, 16) whenever the slider value changes
-const slider = document.querySelector("#baseSlider") as HTMLInputElement;
-
-const swapBase$: Observable<Action> = fromEvent<Event>(slider, "input").pipe(
-    map(event => Number((event.target as HTMLInputElement).value)),
-    map(baseFromIndex),
-    map(b => new ChangeBase(b)),
-);
-
-/**
- * 4-second decaying score multiplier triggered by Spacebar (4x -> 3x -> 2x -> 1x).
- */
-const decayingBonus$: Observable<Action> = fromEvent<KeyboardEvent>(
-    document,
-    "keydown",
-).pipe(
-    filter(event => event.code === "Space" && !event.repeat),
-    switchMap(() =>
-        timer(0, 1000).pipe(
-            take(Constants.MAX_MULTIPLIER),
-            map(
-                decay =>
-                    new setMultiplier(Constants.INITIAL_MULTIPLIER - decay),
-            ),
-        ),
-    ),
-);
-
 /**
  * Main game loop.
  *
@@ -126,11 +72,73 @@ const decayingBonus$: Observable<Action> = fromEvent<KeyboardEvent>(
  * - scan runs reduceState on every Action to keep the game State continuously up to date.
  */
 export const state$ = (): Observable<State> => {
+    const key$ = fromEvent<KeyboardEvent>(document, "keydown");
+
+    /**
+     * Maps a specific key event into a given Action.
+     * Reused across digit keys to avoid duplicate filter/map pipelines.
+     */
+    const fromKey = (keyCode: string, action: Action): Observable<Action> =>
+        key$.pipe(
+            filter(({ code }) => code === keyCode),
+            map(() => action),
+        );
+
+    // Maps Digit1-8 to bit indices 0-7 (left to right)
+    const flipByKey$ = merge(
+        ...Array.from({ length: Constants.DIGIT_COUNT }, (_, i) =>
+            fromKey(`Digit${i + 1}`, new ToggleBitAt(i)),
+        ),
+    );
+
+    // Mouse clicks on bits with "data-index" dispatch the same ToggleBitAt action
+    const flipByMouse$: Observable<Action> = fromEvent<MouseEvent>(
+        document,
+        "mousedown",
+    ).pipe(
+        map(e => (e.target as Element).getAttribute("data-index")),
+        filter(index => index !== null),
+        map(index => new ToggleBitAt(Number(index))),
+    );
+
+    const slider = document.querySelector("#baseSlider") as HTMLInputElement;
+
+    // Listens to slider movement and updates the display base (2, 8, 10, 16)
+    const swapBase$: Observable<Action> = fromEvent<Event>(
+        slider,
+        "input",
+    ).pipe(
+        map(event => Number((event.target as HTMLInputElement).value)),
+        map(baseFromIndex),
+        map(b => new ChangeBase(b)),
+    );
+
+    /**
+     * Grants temporary bonus points when pressing Space.
+     * Starts with +4 extra points and decreases by 1 each second (+4 -> +3 -> +2 -> +1).
+     *
+     * Design Choice:
+     * - Uses `switchMap` cleanly resets the countdown if Space is pressed again.
+     * - Uses `timer(0, 1000)` + `take` handles self-termination without cluttering State.
+     * - Uses `!event.repeat` to prevent repeated triggers when holding the key down.
+     */
+    const decayingBonus$: Observable<Action> = key$.pipe(
+        filter(event => event.code === "Space" && !event.repeat),
+        switchMap(() =>
+            timer(0, 1000).pipe(
+                take(Constants.BONUS_DURATION),
+                map(decay => new SetBonus(Constants.INITIAL_BONUS - decay)),
+            ),
+        ),
+    );
+
+    // Triggers game start immediately and resets on pressing 'R'.
     const restart$ = fromEvent<KeyboardEvent>(document, "keydown").pipe(
         filter((e: KeyboardEvent) => e.code === "KeyR"),
         startWith(null),
     );
 
+    // switchMap tears down running streams and restarts with clean initialState.
     return restart$.pipe(
         switchMap(() => {
             const tick$: Observable<Action> = interval(

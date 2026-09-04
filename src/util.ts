@@ -1,6 +1,8 @@
-/*
-Adapted from FIT2102 Workshop 4 materials.
-*/
+/**
+ * Adapted from FIT2102 Workshop 4 materials.
+ * LCG makes spawns deterministic and reproducible for unit tests,
+ * unlike Math.random().
+ */
 export abstract class RNG {
     private static m = 0x80000000;
     private static a = 1103515245;
@@ -26,19 +28,8 @@ export const scaleToRange =
         min + ((scaledRng + 1) / 2) * (max - min);
 
 /**
- * Type guard utility to filter out null and undefined values.
- * Adapted from FIT2102 Workshop 4.
- */
-export const isNotNullOrUndefined = <T extends object>(
-    input: null | undefined | T,
-): input is T => {
-    return input != null;
-};
-
-/**
  * Helper to batch set SVG/DOM element attributes immutably in intent.
  * Adapted from FIT2102 Workshop 4.
  */
-export const attr = (e: Element, o: { [p: string]: unknown }) => {
-    for (const k in o) e.setAttribute(k, String(o[k]));
-};
+export const attr = (e: Element, o: { [key: string]: unknown }): void =>
+    Object.entries(o).forEach(([k, v]) => e.setAttribute(k, String(v)));

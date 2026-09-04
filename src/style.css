@@ -23,7 +23,6 @@ body {
 }
 
 
-
 .key {
   width: 18px;
   text-align: center;
@@ -124,9 +123,9 @@ svg rect {
 }
 
 .bit.on {
-    fill: #81c784;
+  fill: #4caf50;
 }
-   
+
 .bit-label {
     fill: black;
     font-family: monospace;
@@ -140,9 +139,3 @@ svg rect {
     text-align: center;
 }
 
-.hud {
-  fill: #555;
-  font-family: monospace;
-  font-size: 14px;
-  pointer-events: none;  
-}
