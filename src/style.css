@@ -22,14 +22,12 @@ body {
     justify-content: center;
 }
 
-
 .key {
-  width: 18px;
-  text-align: center;
-  border-radius: 3px;
-  background-color: lightgray;
+    width: 18px;
+    text-align: center;
+    border-radius: 3px;
+    background-color: lightgray;
 }
-
 
 h1 {
     font-size: 3em;
@@ -123,7 +121,7 @@ svg rect {
 }
 
 .bit.on {
-  fill: #4caf50;
+    fill: #4caf50;
 }
 
 .bit-label {
@@ -138,4 +136,3 @@ svg rect {
     font-weight: bolder;
     text-align: center;
 }
-

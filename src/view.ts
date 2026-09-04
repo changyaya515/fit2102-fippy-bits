@@ -135,6 +135,9 @@ export const render = (): ((s: State) => void) => {
     const baseSlider = document.querySelector(
         "#baseSlider",
     ) as HTMLInputElement | null;
+    const gameOverGroup = document.querySelector(
+        "#gameOver",
+    ) as SVGElement | null;
 
     if (!svg) return () => {};
 
@@ -169,16 +172,6 @@ export const render = (): ((s: State) => void) => {
         return { rect, bitText };
     });
 
-    const gameOverText = createSvgElement(svg.namespaceURI, "text", {
-        x: String(Viewport.CANVAS_WIDTH / 2),
-        y: String(Viewport.CANVAS_HEIGHT / 2),
-        "text-anchor": "middle",
-        "dominant-baseline": "central",
-    });
-    gameOverText.textContent = "Game Over";
-    hide(gameOverText);
-    svg.appendChild(gameOverText);
-
     return (s: State): void => {
         removeTargets(svg, s.exit);
         syncTargets(svg, s);
@@ -205,6 +198,8 @@ export const render = (): ((s: State) => void) => {
 
         s.targets.forEach(updateTargetView(svg, s.base));
 
-        s.gameEnd ? show(gameOverText) : hide(gameOverText);
+        if (gameOverGroup) {
+            s.gameEnd ? show(gameOverGroup) : hide(gameOverGroup);
+        }
     };
 };
